@@ -3,7 +3,7 @@
 
 package com.daml.ledger.rxjava.grpc;
 
-import com.daml.ledger.api.v1.EventQueryServiceOuterClass.GetEventsByContractIdRequest;
+import com.daml.ledger.api.v2.EventQueryServiceOuterClass.GetEventsByContractIdRequest;
 import com.daml.ledger.api.v2.EventQueryServiceGrpc;
 import com.daml.ledger.javaapi.data.GetEventsByContractIdResponse;
 import com.daml.ledger.rxjava.EventQueryClient;

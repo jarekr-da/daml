@@ -3,7 +3,7 @@
 
 package com.daml.ledger.rxjava.grpc;
 
-import com.daml.ledger.api.v1.PackageServiceOuterClass.ListPackagesResponse;
+import com.daml.ledger.api.v2.PackageServiceOuterClass.ListPackagesResponse;
 import com.daml.ledger.api.v2.PackageServiceGrpc;
 import com.daml.ledger.api.v2.PackageServiceOuterClass;
 import com.daml.ledger.javaapi.data.GetPackageResponse;

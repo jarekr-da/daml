@@ -6,10 +6,9 @@
 module DA.Ledger.Services.PackageService (
     listPackages,
     getPackage, Package(..),
-    getPackageStatus, V1.PackageStatus(..),
+    getPackageStatus, PackageStatus(..),
     ) where
 
-import qualified Com.Daml.Ledger.Api.V1.PackageService as V1
 import Com.Daml.Ledger.Api.V2.PackageService
 import DA.Ledger.GrpcWrapUtils
 import DA.Ledger.LedgerService
@@ -26,7 +25,7 @@ listPackages =
         service <- packageServiceClient client
         let PackageService {packageServiceListPackages=rpc} = service
         response <- rpc (ClientNormalRequest ListPackagesRequest timeout mdm)
-        V1.ListPackagesResponse xs <- unwrap response
+        ListPackagesResponse xs <- unwrap response
         return $ map PackageId $ Vector.toList xs
 
 newtype Package = Package ByteString deriving (Eq,Ord,Show)
@@ -43,10 +42,10 @@ getPackage pid =
             >>= \case
             Nothing ->
                 return Nothing
-            Just (V1.GetPackageResponse _ bs _) ->
+            Just (GetPackageResponse _ bs _) ->
                 return $ Just $ Package bs
 
-getPackageStatus :: PackageId -> LedgerService V1.PackageStatus
+getPackageStatus :: PackageId -> LedgerService PackageStatus
 getPackageStatus pid =
     makeLedgerService $ \timeout config mdm ->
     withGRPCClient config $ \client -> do
@@ -56,7 +55,7 @@ getPackageStatus pid =
         rpc (ClientNormalRequest request timeout mdm)
             >>= unwrap
             >>= \case
-            V1.GetPackageStatusResponse (Enumerated (Left n)) ->
+            GetPackageStatusResponse (Enumerated (Left n)) ->
                 fail $ "unexpected PackageStatus enum = " <> show n
-            V1.GetPackageStatusResponse (Enumerated (Right status)) ->
+            GetPackageStatusResponse (Enumerated (Right status)) ->
                 return status
