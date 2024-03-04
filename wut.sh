@@ -1,4 +1,7 @@
 #!/bin/bash
+# Copyright (c) 2024 Digital Asset (Switzerland) GmbH and/or its affiliates. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+
 
 ls -al bazel-out/k8-opt/bin/canton/Com/Daml/Ledger/Api/V2
 

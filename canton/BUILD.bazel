@@ -1497,7 +1497,8 @@ genrule(
 
 filegroup(
     name = "ledger-api-protos-fg",
-    srcs = glob( [
+    srcs = glob(
+        [
             "community/ledger-api/src/main/protobuf/com/daml/ledger/api/v2/*.proto",
         ],
     ),
