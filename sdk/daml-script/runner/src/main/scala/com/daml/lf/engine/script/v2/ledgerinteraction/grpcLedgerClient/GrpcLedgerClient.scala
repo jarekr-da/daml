@@ -41,6 +41,7 @@ import com.digitalasset.canton.ledger.api.util.LfEngineToApi.{
   toTimestamp,
 }
 import com.daml.script.converter.ConverterException
+import com.digitalasset.canton.tracing.TraceContext
 import io.grpc.{Status, StatusRuntimeException}
 import io.grpc.protobuf.StatusProto
 import com.google.rpc.status.{Status => GoogleStatus}
@@ -130,10 +131,11 @@ class GrpcLedgerClient(
       mat: Materializer,
   ): Future[Vector[(ScriptLedgerClient.ActiveContract, Option[Value])]] = {
     val filter = templateFilter(parties, templateId)
-    val acsResponse =
+    val acsResponse = TraceContext.withNewTraceContext { implicit traceContext =>
       grpcClient.v2.stateService
         .getActiveContracts(filter, verbose = false)
         .map(_._1)
+    }
     acsResponse.map(activeContracts =>
       activeContracts.toVector.map(activeContract => {
         val createdEvent = activeContract.getCreatedEvent
@@ -203,10 +205,11 @@ class GrpcLedgerClient(
       mat: Materializer,
   ): Future[Seq[(ContractId, Option[Value])]] = {
     val filter = interfaceFilter(parties, interfaceId)
-    val acsResponse =
+    val acsResponse = TraceContext.withNewTraceContext { implicit traceContext =>
       grpcClient.v2.stateService
         .getActiveContracts(filter, verbose = false)
         .map(_._1)
+    }
     acsResponse.map(activeContracts =>
       activeContracts.toVector.flatMap(activeContract => {
         val createdEvent = activeContract.getCreatedEvent
@@ -316,8 +319,11 @@ class GrpcLedgerClient(
         commandId = UUID.randomUUID.toString,
         disclosedContracts = ledgerDisclosures,
       )
-      eResp <- grpcClient.v2.commandService
-        .submitAndWaitForTransactionTree(apiCommands)
+      eResp <-  TraceContext.withNewTraceContext { implicit traceContext =>
+        grpcClient.v2.commandService
+          .submitAndWaitForTransactionTree(apiCommands)
+      }
+
 
       result <- eResp match {
         case Right(resp) =>

@@ -39,6 +39,7 @@ import com.digitalasset.canton.ledger.api.util.LfEngineToApi.{
   toTimestamp,
 }
 import com.daml.script.converter.ConverterException
+import com.digitalasset.canton.tracing.TraceContext
 import io.grpc.protobuf.StatusProto
 import io.grpc.StatusRuntimeException
 import io.grpc.Status.Code
@@ -98,10 +99,11 @@ class GrpcLedgerClient(val grpcClient: LedgerClient, val applicationId: Option[R
       mat: Materializer,
   ): Future[Vector[(ScriptLedgerClient.ActiveContract, Option[Value])]] = {
     val filter = templateFilter(parties, templateId)
-    val acsResponse =
+    val acsResponse = TraceContext.withNewTraceContext { implicit traceContext =>
       grpcClient.v2.stateService
         .getActiveContracts(filter, verbose = false)
         .map(_._1)
+    }
     acsResponse.map(activeContracts =>
       activeContracts.toVector.map(activeContract => {
         val createdEvent = activeContract.getCreatedEvent
@@ -154,10 +156,11 @@ class GrpcLedgerClient(val grpcClient: LedgerClient, val applicationId: Option[R
       mat: Materializer,
   ): Future[Seq[(ContractId, Option[Value])]] = {
     val filter = interfaceFilter(parties, interfaceId)
-    val acsResponse =
+    val acsResponse = TraceContext.withNewTraceContext { implicit traceContext =>
       grpcClient.v2.stateService
         .getActiveContracts(filter, verbose = false)
         .map(_._1)
+      }
     acsResponse.map(activeContracts =>
       activeContracts.toVector.flatMap(activeContract => {
         val createdEvent = activeContract.getCreatedEvent
@@ -270,16 +273,18 @@ class GrpcLedgerClient(val grpcClient: LedgerClient, val applicationId: Option[R
       applicationId = applicationId.getOrElse(""),
       commandId = UUID.randomUUID.toString,
     )
-    val transactionTreeF = grpcClient.v2.commandService
-      .submitAndWaitForTransactionTree(apiCommands)
-      .flatMap {
-        case Right(tree) => Future.successful(Right(tree))
-        // daml2-script is being deleted, i dont mind rebuilding the error
-        case Left(status) if isSubmitMustFailError(status) =>
-          Future.successful(Left(StatusProto.toStatusRuntimeException(Status.toJavaProto(status))))
-        case Left(status) =>
-          Future.failed(StatusProto.toStatusRuntimeException(Status.toJavaProto(status)))
-      }
+    val transactionTreeF = TraceContext.withNewTraceContext { implicit traceContext =>
+      grpcClient.v2.commandService
+        .submitAndWaitForTransactionTree(apiCommands)
+        .flatMap {
+          case Right(tree) => Future.successful(Right(tree))
+          // daml2-script is being deleted, i dont mind rebuilding the error
+          case Left(status) if isSubmitMustFailError(status) =>
+            Future.successful(Left(StatusProto.toStatusRuntimeException(Status.toJavaProto(status))))
+          case Left(status) =>
+            Future.failed(StatusProto.toStatusRuntimeException(Status.toJavaProto(status)))
+        }
+    }
     transactionTreeF.map(r =>
       r.map(transactionTree => {
         val events = transactionTree.getTransaction.rootEventIds
@@ -326,14 +331,16 @@ class GrpcLedgerClient(val grpcClient: LedgerClient, val applicationId: Option[R
         applicationId = applicationId.getOrElse(""),
         commandId = UUID.randomUUID.toString,
       )
-      resp <- grpcClient.v2.commandService
-        .submitAndWaitForTransactionTree(apiCommands)
-        .flatMap {
-          case Right(tree) => Future.successful(tree)
-          // daml2-script is being deleted, i dont mind rebuilding the error
-          case Left(status) =>
-            Future.failed(StatusProto.toStatusRuntimeException(Status.toJavaProto(status)))
-        }
+      resp <-  TraceContext.withNewTraceContext { implicit traceContext =>
+        grpcClient.v2.commandService
+          .submitAndWaitForTransactionTree(apiCommands)
+          .flatMap {
+            case Right(tree) => Future.successful(tree)
+            // daml2-script is being deleted, i dont mind rebuilding the error
+            case Left(status) =>
+              Future.failed(StatusProto.toStatusRuntimeException(Status.toJavaProto(status)))
+          }
+      }
       converted <- Converter.toFuture(Converter.fromTransactionTree(resp.getTransaction))
     } yield converted
   }
