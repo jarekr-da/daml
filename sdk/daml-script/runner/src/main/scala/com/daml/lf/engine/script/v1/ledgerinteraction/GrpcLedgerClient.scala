@@ -160,7 +160,7 @@ class GrpcLedgerClient(val grpcClient: LedgerClient, val applicationId: Option[R
       grpcClient.v2.stateService
         .getActiveContracts(filter, verbose = false)
         .map(_._1)
-      }
+    }
     acsResponse.map(activeContracts =>
       activeContracts.toVector.flatMap(activeContract => {
         val createdEvent = activeContract.getCreatedEvent
@@ -280,7 +280,9 @@ class GrpcLedgerClient(val grpcClient: LedgerClient, val applicationId: Option[R
           case Right(tree) => Future.successful(Right(tree))
           // daml2-script is being deleted, i dont mind rebuilding the error
           case Left(status) if isSubmitMustFailError(status) =>
-            Future.successful(Left(StatusProto.toStatusRuntimeException(Status.toJavaProto(status))))
+            Future.successful(
+              Left(StatusProto.toStatusRuntimeException(Status.toJavaProto(status)))
+            )
           case Left(status) =>
             Future.failed(StatusProto.toStatusRuntimeException(Status.toJavaProto(status)))
         }
@@ -331,7 +333,7 @@ class GrpcLedgerClient(val grpcClient: LedgerClient, val applicationId: Option[R
         applicationId = applicationId.getOrElse(""),
         commandId = UUID.randomUUID.toString,
       )
-      resp <-  TraceContext.withNewTraceContext { implicit traceContext =>
+      resp <- TraceContext.withNewTraceContext { implicit traceContext =>
         grpcClient.v2.commandService
           .submitAndWaitForTransactionTree(apiCommands)
           .flatMap {

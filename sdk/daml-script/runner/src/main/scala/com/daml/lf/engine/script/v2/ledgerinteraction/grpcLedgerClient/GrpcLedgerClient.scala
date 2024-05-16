@@ -319,11 +319,10 @@ class GrpcLedgerClient(
         commandId = UUID.randomUUID.toString,
         disclosedContracts = ledgerDisclosures,
       )
-      eResp <-  TraceContext.withNewTraceContext { implicit traceContext =>
+      eResp <- TraceContext.withNewTraceContext { implicit traceContext =>
         grpcClient.v2.commandService
           .submitAndWaitForTransactionTree(apiCommands)
       }
-
 
       result <- eResp match {
         case Right(resp) =>
